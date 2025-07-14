@@ -1,0 +1,65 @@
+
+This Bash script performs the following actions:
+
+    Define Variables: It sets several variables at the beginning of the script to configure various aspects of creating and running a virtual machine (VM). Here's what each variable represents:
+        ISO_PATH: The path to the Ubuntu ISO image file that will be used to install the operating system on the VM.
+        VM_NAME: The name of the virtual machine.
+        VM_MEMORY: The amount of RAM allocated to the VM in megabytes (MB).
+        VM_VCPUS: The number of virtual CPUs allocated to the VM.
+        VM_DISK_SIZE: The size of the virtual disk for the VM in gigabytes (GB).
+        VM_NETWORK: The network configuration for the VM. In this case, it specifies a bridge network interface named "br0."
+        VM_GRAPHICS: The graphics configuration for the VM. It uses the SPICE protocol for graphics.
+        VM_LOCATION: The path where the VM's virtual disk image will be stored.
+
+    Download Ubuntu ISO: The script checks if the Ubuntu ISO file specified in ISO_PATH exists. If it doesn't exist, it uses the wget command to download the Ubuntu 20.04 ISO from the official Ubuntu releases website and saves it to the specified path.
+
+    Create Virtual Machine: The script uses the virt-install command to create a virtual machine with the following specifications:
+        --name: Sets the name of the VM to the value of VM_NAME.
+        --memory: Allocates the specified amount of memory to the VM (value of VM_MEMORY).
+        --vcpus: Allocates the specified number of virtual CPUs to the VM (value of VM_VCPUS).
+        --disk: Specifies the path and size of the virtual disk for the VM (values of VM_LOCATION and VM_DISK_SIZE).
+        --network: Sets the network configuration for the VM (value of VM_NETWORK).
+        --graphics: Specifies the graphics configuration for the VM (value of VM_GRAPHICS).
+        --cdrom: Sets the CD-ROM drive to use the Ubuntu ISO file specified in ISO_PATH.
+        --os-type and --os-variant: Specify the OS type and variant for the VM, which in this case is Ubuntu 20.04.
+        --virt-type: Specifies the virtualization type as KVM.
+        --import: Imports the VM.
+
+    Start Virtual Machine: Finally, the script uses the virsh command to start the virtual machine with the name specified in VM_NAME.
+
+In summary, this script automates the process of creating and starting a virtual machine with specific configuration settings, using an Ubuntu ISO image for installation if it doesn't already exist. This can be useful for quickly provisioning virtual machines for testing or development purposes.
+
+
+#!/bin/bash
+
+# Define variables
+ISO_PATH="/path/to/ubuntu.iso"
+VM_NAME="ubuntu-vm"
+VM_MEMORY="2048"
+VM_VCPUS="2"
+VM_DISK_SIZE="20"
+VM_NETWORK="bridge=br0"
+VM_GRAPHICS="spice"
+VM_LOCATION="/var/lib/libvirt/images/${VM_NAME}.qcow2"
+
+# Download Ubuntu ISO if it doesn't exist
+if [ ! -f "$ISO_PATH" ]; then
+  wget "http://releases.ubuntu.com/20.04/ubuntu-20.04.2.0-desktop-amd64.iso" -O "$ISO_PATH"
+fi
+
+# Create virtual machine
+virt-install \
+  --name "$VM_NAME" \
+  --memory "$VM_MEMORY" \
+  --vcpus "$VM_VCPUS" \
+  --disk path="$VM_LOCATION",size="$VM_DISK_SIZE" \
+  --network "$VM_NETWORK" \
+  --graphics "$VM_GRAPHICS" \
+  --cdrom "$ISO_PATH" \
+  --os-type linux \
+  --os-variant ubuntu20.04 \
+  --virt-type kvm \
+  --import
+
+# Start virtual machine
+virsh start "$VM_NAME"

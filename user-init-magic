@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# Omniscient System User Setup Script
+# Usage: sudo ./omniscient-user-init.sh jeremy
+
+USERNAME="$1"
+USER_HOME="/opt/omniscient/home/$USERNAME"
+SKEL_UPDATE=true  # set to false to skip /etc/skel update
+
+if [ -z "$USERNAME" ]; then
+    echo "Usage: $0 <username>"
+    exit 1
+fi
+
+# Ensure user exists
+if ! id "$USERNAME" &>/dev/null; then
+    echo "User '$USERNAME' does not exist. Creating..."
+    useradd -m -d "$USER_HOME" -s /bin/bash "$USERNAME"
+    echo "User '$USERNAME' created with custom home: $USER_HOME"
+else
+    echo "User '$USERNAME' exists. Modifying home directory..."
+    usermod -d "$USER_HOME" -m "$USERNAME"
+fi
+
+# Create custom directory structure
+mkdir -p "$USER_HOME"/{osint,forensics,logs,reporting,user,system,scraping,.config}
+
+# Create user-dirs.dirs config
+cat << 'EOF' > "$USER_HOME/.config/user-dirs.dirs"
+XDG_OSINT_DIR="$HOME/osint"
+XDG_FORENSICS_DIR="$HOME/forensics"
+XDG_LOGS_DIR="$HOME/logs"
+XDG_REPORTING_DIR="$HOME/reporting"
+XDG_USER_DIR="$HOME/user"
+XDG_SYSTEM_DIR="$HOME/system"
+XDG_SCRAPING_DIR="$HOME/scraping"
+EOF
+
+# Create .profile
+cat << 'EOF' > "$USER_HOME/.profile"
+# Omniscient .profile
+
+# Source user-defined directory mappings (if present)
+if [ -f "$HOME/.config/user-dirs.dirs" ]; then
+    . "$HOME/.config/user-dirs.dirs"
+    export XDG_OSINT_DIR XDG_FORENSICS_DIR XDG_LOGS_DIR XDG_REPORTING_DIR XDG_USER_DIR XDG_SYSTEM_DIR XDG_SCRAPING_DIR
+fi
+
+# Add Omniscient system paths
+export PATH="$PATH:/opt/omniscient/bin:/opt/omniscient/py:/opt/omniscient/menus"
+EOF
+
+# Create .bashrc (optional: append to default or generate new)
+cat << 'EOF' > "$USER_HOME/.bashrc"
+# Omniscient .bashrc
+
+# Load user-defined dirs
+if [ -f "$HOME/.config/user-dirs.dirs" ]; then
+    . "$HOME/.config/user-dirs.dirs"
+    export XDG_OSINT_DIR XDG_FORENSICS_DIR XDG_LOGS_DIR XDG_REPORTING_DIR XDG_USER_DIR XDG_SYSTEM_DIR XDG_SCRAPING_DIR
+fi
+
+# Add system paths
+export PATH="$PATH:/opt/omniscient/bin:/opt/omniscient/py:/opt/omniscient/menus"
+EOF
+
+# Set ownership
+chown -R "$USERNAME:$USERNAME" "$USER_HOME"
+
+# Optional: update /etc/skel for future users
+if [ "$SKEL_UPDATE" = true ]; then
+    echo "Updating /etc/skel for new users..."
+    mkdir -p /etc/skel/{osint,forensics,logs,reporting,user,system,scraping,.config}
+
+    cp "$USER_HOME/.profile" /etc/skel/.profile
+    cp "$USER_HOME/.bashrc" /etc/skel/.bashrc
+    cp "$USER_HOME/.config/user-dirs.dirs" /etc/skel/.config/user-dirs.dirs
+fi
+
+echo "✅ Omniscient user environment initialized for '$USERNAME'"
+

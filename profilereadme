@@ -1,0 +1,5 @@
+#!/bin/bash
+# move_md_to_readme.sh
+mkdir -p readme
+mv *.md readme/
+echo "Moved all .md files to ./readme"
